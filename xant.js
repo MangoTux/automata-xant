@@ -57,7 +57,18 @@ class Config {
       "square": 3,
       "hex": 1,
     });
-    this.tile_size = this.board_style == "square" ? parseInt(Math.random() * 2) + 1 : 2;
+    if (this.board_style == "square") {
+      this.tile_size = parseInt(weighted_random({
+        1: 90,
+        2: 10,
+      }));
+    } else {
+      this.tile_size = parseInt(weighted_random({
+        2: 40,
+        4: 30,
+        8: 10,
+      }));
+    }
     if (this.tile_size > 1) {
       this.offset = this.board_style == "hex" || Math.random() > 0.95;
     }
@@ -526,7 +537,7 @@ class Board {
       for (let col = 0; col < this.size.x; col++) {
         if (!this.grid[row][col]) { continue; }
         if (!this.grid[row][col].dirty) { continue; }
-        let offset = row % 2 ? this.size.tile / 2 : 0;
+        let offset = this.scope.config.offset && row % 2 ? this.size.tile / 2 : 0;
         context.fillStyle = this.getColor(this.grid[row][col]);
         context.fillRect(col*this.size.tile + offset, row*this.size.tile, this.size.tile, this.size.tile);
         this.grid[row][col].dirty = false;
