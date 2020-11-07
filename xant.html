@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <script type='text/javascript' src='xant.js'></script>
+    <style>
+      body {
+        padding: 0!important;
+        margin: 0!important;
+        overflow: hidden;
+      }
+      #viewport {
+        background-color: black;
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id='viewport'></canvas>
+  </body>
+  <script type="text/javascript">
+  const url_params = new URLSearchParams(window.location.search);
+  const steps_per_draw = url_params.get('steps') || 1000;
+  const automata = new World({
+    steps_per_draw: steps_per_draw,
+    reset_time: 60 * 1000 * 1, // 30 min
+  });
+  </script>
+</html>

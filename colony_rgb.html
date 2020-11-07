@@ -1,0 +1,56 @@
+<html>
+  <head>
+    <script type='text/javascript' src='colony_rgb.js'></script>
+    <style>
+      body { background: hsl(217, 80%, 15%); }
+      .input_group {
+        background: #eee;
+        border: 1px solid black;
+        border-radius: 5px;
+        margin: 15px;
+        padding: 5px;
+      }
+      button {
+        width: 100%;
+        margin-bottom: 2px;
+      }
+      #automata_container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      #automata_container>* {
+        margin: 20px;
+      }
+      #viewport {
+        width: 1600px;
+        height: 800px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='automata_container'>
+      <div>
+        <form class='input_group' id='controls'>
+          <button id='playback_pause' onclick='return false'>Pause</button><br>
+          <button id='playback_step' onclick='return false'>Step</button><br>
+          <button id='playback_play' onclick='return false'>Play</button><br>
+          <label for="enable_extended">
+          <input type="checkbox" id='enable_extended'>xAnt</label><br><br><br><br>
+          <button id='reload_controls' onclick='return false'>Reload</button>
+        </form>
+      </div>
+      <canvas id='viewport' width='1600px' height='800px' style='border: 1px solid #000000'></canvas>
+    </div>
+  </body>
+  <script type="text/javascript">
+  const automata = new Colony({
+    instruction_type: "random",
+    instructions: 255,
+    steps_per_draw: 1000,
+    tile_size: 1,
+    width: 1600,
+    height: 800,
+  });
+  </script>
+</html>
