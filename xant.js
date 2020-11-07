@@ -169,6 +169,8 @@ class World {
       reset_time: options.reset_time,
       time_active: 0,
     };
+    this.width = document.body.clientWidth;
+    this.height = document.body.clientHeight;
 
     this.config = new Config(this, options);
     const canvas = document.getElementById(this.config.selector.canvas);
@@ -494,8 +496,7 @@ class ScreenCleaner {
       running: 1,
       done: 2,
     };
-    this.config = {
-    }
+    this.config = {};
     this.steps = 0;
   }
 
@@ -503,24 +504,28 @@ class ScreenCleaner {
     this.steps = 0;
     this.state.current = this.state.running;
     this.config.style = weighted_random({
-      "fade_out": 1,
+      "fade_out": 0*1,
       "wipe_horizontal": 0*1,
       "wipe_vertical": 0*1,
+      "shutter_horizontal": 0*1,
+      "shutter_vertical": 1,
     });
     if (this.config.style == "fade_out") {
       this.config.steps_needed = 60;
     } else if (this.config.style == "wipe_horizontal") {
-      this.config.radix = 4;
-      this.config.steps_needed = (document.body.clientHeight / this.config.radix)+1;
+      this.config.radix = 8;
+      this.config.steps_needed = (this.scope.height / this.config.radix)+1;
     } else if (this.config.style == "wipe_vertical") {
-      this.config.radix = 4;
-      this.config.steps_needed = (document.body.clientWidth / this.config.radix)+1;
+      this.config.radix = 8;
+      this.config.steps_needed = (this.scope.width / this.config.radix)+1;
     } else if (this.config.style == "shutter_horizontal") {
-      this.config.radix = 4;
+      this.config.radix = 8;
       this.config.shutter_count = 6;
+      this.config.steps_needed = (this.scope.height / this.config.radix)+1;
     } else if (this.config.style == "shutter_vertical") {
       this.config.radix = 4;
       this.config.shutter_count = 12;
+      this.config.steps_needed = (this.scope.width / this.config.radix)+1;
     }
   }
 
@@ -541,15 +546,15 @@ class ScreenCleaner {
     if (this.state.current == this.state.done) {
       context.fillStyle = "#000000";
     }
-    context.fillRect(0, 0, document.body.clientWidth, document.body.clientHeight);
+    context.fillRect(0, 0, this.scope.width, this.scope.height);
   }
 
   _drawWipe(context, direction) {
     context.fillStyle = "black";
     let x = direction == "horizontal" ? 0 : this.config.radix*(this.steps-1);
     let y = direction == "horizontal" ? this.config.radix*(this.steps-1) : 0;
-    let width = direction == "horizontal" ? document.body.clientWidth : this.config.radix;
-    let height = direction == "horizontal" ? this.config.radix : document.body.clientHeight;
+    let width = direction == "horizontal" ? this.scope.width : this.config.radix;
+    let height = direction == "horizontal" ? this.config.radix : this.scope.height;
     context.fillRect(x, y, width, height);
   }
 
@@ -557,6 +562,31 @@ class ScreenCleaner {
     context.fillStyle = "black";
     // Odd shutters fill from opposite side
     // Uses wipe function, but spaced out for each shutter
+    for (let i = 0; i < this.config.shutter_count; i++) {
+      let x, y, width, height;
+      if (direction == "horizontal") {
+        x = i * this.scope.width / this.config.shutter_count;
+        y = this.config.radix * (this.steps-1);
+        width = this.scope.width / this.config.shutter_count;
+        height = this.config.radix;
+        if (i % 2) {
+          y = this.scope.height - y;
+          y -= this.config.radix;
+          width++;
+        }
+      } else {
+        x = this.config.radix * (this.steps-1);
+        y = i * this.scope.height / this.config.shutter_count;
+        width = this.config.radix;
+        height = this.scope.height / this.config.shutter_count;
+        if (i % 2) {
+          x = this.scope.width - x;
+          x -= this.config.radix;
+          height++;
+        }
+      }
+      context.fillRect(x, y, width, height);
+    }
   }
 
   draw(context) {
@@ -564,6 +594,8 @@ class ScreenCleaner {
       case "fade_out": this._drawFadeOut(context); break;
       case "wipe_horizontal": this._drawWipe(context, "horizontal"); break;
       case "wipe_vertical": this._drawWipe(context, "vertical"); break;
+      case "shutter_horizontal": this._drawShutters(context, "horizontal"); break;
+      case "shutter_vertical": this._drawShutters(context, "vertical"); break;
     }
   }
 }
