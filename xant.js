@@ -25,7 +25,7 @@ class Config {
       },
       "hex": {
         "basic": ["left", "right", "left2", "right2"],
-        "extended": null // TODO when known if row or col is flat
+        "extended": ["left", "right", "left2", "right2", "forward", "reverse", "northeast", "east", "southeast", "southwest", "west", "northwest"],
       },
     };
     this.default_options = options;
@@ -53,7 +53,15 @@ class Config {
     square: Square tiles on a grid, granular to 1 pixel/tile
     hex: Still need to iron out logic/drawing
     */
-    this.board_style = "square";
+    this.board_style = weighted_random({
+      "square": 3,
+      "hex": 1,
+    });
+    this.tile_size = this.board_style == "square" ? parseInt(Math.random() * 2) + 1 : 2;
+    if (this.tile_size > 1) {
+      this.offset = this.board_style == "hex" || Math.random() > 0.95;
+    }
+    this.steps_per_draw = 1000 / Math.pow(this.tile_size, 2);
     this.direction_count = this.board_style == "square" ? 4 : 6;
 
     /*
@@ -332,13 +340,53 @@ class Ant {
     this.steps++;
     // Clamp direction to board-defined options
     this.direction = this.scope.getClampedDirection(this);
-    // TODO Abstract for Hex options, which is a 6-cycle behavior
-    switch (this.direction) {
-      case 0: this.position.y--; break;
-      case 1: this.position.x++; break;
-      case 2: this.position.y++; break;
-      case 3: this.position.x--; break;
+    // Using a basic offset behavior, odd-numbered rows are considered offset, while even are aligned.
+    if (this.scope.config.board_style == "hex") {
+      switch (this.direction) {
+        case 0: // Northeast
+          // Only on offset rows
+          if (this.position.y % 2 == 1) {
+            this.position.x++;
+          }
+          this.position.y--;
+          break;
+        case 1: // East
+          this.position.x++;
+          break;
+        case 2: // Southeast
+          // Only on offset rows
+          if (this.position.y % 2 == 1) {
+            this.position.x++;
+          }
+          this.position.y++;
+          break;
+        case 3: // Southwest
+          // Only on aligned rows
+          if (this.position.y % 2 == 0) {
+            this.position.x--;
+          }
+          this.position.y++;
+          break;
+        case 4: // West
+          this.position.x--;
+          break;
+        case 5: // Northwest
+          // Only on aligned rows
+          if (this.position.y % 2 == 0) {
+            this.position.x--;
+          }
+          this.position.y--;
+          break;
+      }
+    } else {
+      switch (this.direction) {
+        case 0: this.position.y--; break;
+        case 1: this.position.x++; break;
+        case 2: this.position.y++; break;
+        case 3: this.position.x--; break;
+      }
     }
+    // TODO Abstract for Hex options, which is a 6-cycle behavior
     this.position = this.scope.getClampedPosition(this);
   }
 
@@ -363,10 +411,14 @@ class Ant {
         this.direction = 2; break;
       case "west":
         this.direction = 3; break;
-      case "[reserved_one]":
-      case "[reserved_two]":
-        // These are both of the extended directions for a hex grid
-        break;
+      case "northeast":
+        this.direction = 0; break;
+      case "northwest":
+        this.direction = 5; break;
+      case "southeast":
+        this.direction = 3; break;
+      case "southwest":
+        this.direction = 4; break;
       case "forward":
         break;
       case "reverse":
@@ -382,27 +434,15 @@ class Board {
   }
 
   initialize() {
-    const tile_size = parseInt(Math.random() * 2) + 1;
     this.size = {
-      x: parseInt(document.body.clientWidth / tile_size),
-      y: parseInt(document.body.clientHeight / tile_size),
-      tile: tile_size,
+      x: parseInt(this.scope.width / this.scope.config.tile_size), // - 1 for hex to allow trailoff
+      y: parseInt(this.scope.height / this.scope.config.tile_size),
+      tile: this.scope.config.tile_size,
     };
+    this.size.x -= this.scope.config.offset ? 1 : 0
     this.grid = new Array(this.size.y);
     for (let row = 0; row < this.size.y; row++) {
       this.grid[row] = new Array(this.size.x);
-      // Initialize only when called to save time and memory
-      // for (let col = 0; col < this.size.x; col++) {
-      //   this.grid[row][col] = {
-      //     state: 0,
-      //     shift: 0,
-      //     dirty: true,
-      //     last_ant: null,
-      //     r: 0,
-      //     g: 0,
-      //     b: 0,
-      //   };
-      // }
     }
     this.generatePalette();
   }
@@ -486,8 +526,9 @@ class Board {
       for (let col = 0; col < this.size.x; col++) {
         if (!this.grid[row][col]) { continue; }
         if (!this.grid[row][col].dirty) { continue; }
+        let offset = row % 2 ? this.size.tile / 2 : 0;
         context.fillStyle = this.getColor(this.grid[row][col]);
-        context.fillRect(col*this.size.tile, row*this.size.tile, this.size.tile, this.size.tile);
+        context.fillRect(col*this.size.tile + offset, row*this.size.tile, this.size.tile, this.size.tile);
         this.grid[row][col].dirty = false;
       }
     }
