@@ -10,17 +10,27 @@
       #viewport {
         background-color: black;
         image-rendering: pixelated;
+        z-index: 0;
+      }
+      #debug {
+        z-index: 1;
+        position:absolute;
+        top:0;
+        left:0;
       }
     </style>
   </head>
   <body>
     <canvas id='viewport'></canvas>
+    <canvas id='debug'></canvas>
   </body>
   <script type="text/javascript">
   const url_params = new URLSearchParams(window.location.search);
   const reset_time = parseInt(url_params.get('refresh')) || 60 * 1000 * 30;
+  const debug = (url_params.get('debug') || "false") == "true";
   const automata = new World({
     reset_time: reset_time,
+    debug: debug,
   });
   </script>
 </html>
