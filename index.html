@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <script type='text/javascript' src='xant.js'></script>
+    <style>
+      body {
+        padding: 0!important;
+        margin: 0!important;
+        overflow: hidden;
+      }
+      #viewport {
+        background-color: black;
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id='viewport'></canvas>
+  </body>
+  <script type="text/javascript">
+  const url_params = new URLSearchParams(window.location.search);
+  const reset_time = parseInt(url_params.get('refresh')) || 60 * 1000 * 30;
+  const automata = new World({
+    reset_time: reset_time,
+  });
+  </script>
+</html>
