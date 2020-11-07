@@ -16,7 +16,8 @@ class Config {
   constructor(scope, options) {
     this.scope = scope;
     this.selector = {
-      canvas: "viewport"
+      canvas: "viewport",
+      debug: "debug",
     };
     this.instruction_sets = {
       "square": {
@@ -62,12 +63,21 @@ class Config {
         1: 90,
         2: 10,
       }));
+      this.draw_style = "square";
     } else {
       this.tile_size = parseInt(weighted_random({
         2: 40,
         4: 30,
-        8: 10,
+        5: 10,
+        6: 10,
+        7: 5,
+        8: 5,
       }));
+      this.draw_style = weighted_random({
+        "square": this.tile_size > 2 ? 25 : 100,
+        "hex_flat": this.tile_size > 2 ? 75 : 0,
+        "hex_depth": this.tile_size > 2 ? 25 : 0,
+      });
     }
     if (this.tile_size > 1) {
       this.offset = this.board_style == "hex" || Math.random() > 0.95;
@@ -178,6 +188,16 @@ class Config {
     }
     return instructions;
   }
+
+  toString() {
+    return [
+      `ants: ${this.ant_count}`,
+      `style: ${this.board_style}`,
+      `instructions: ${this.instruction_type}`,
+      `coloring: ${this.ant_coloring}`,
+      `draw: ${this.draw_style}`,
+    ];
+  }
 }
 
 // A world is comprised of the rules, setting, and all inhabitants
@@ -260,7 +280,19 @@ class World {
     }
   }
 
+  debug() {
+    const canvas = document.getElementById(this.config.selector.debug);
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, this.width, this.height);
+    context.font = "8px Courier";
+    context.fillStyle = "white";
+    for (const [index, value] of Object.entries(this.config.toString())) {
+      context.fillText(value, 1, 5+index*6);
+    }
+  }
+
   draw() {
+    this.config.debug && this.debug();
     const canvas = document.getElementById(this.config.selector.canvas);
     const context = canvas.getContext("2d");
     this.state.current == this.state.reset && this.screen_cleaner.draw(context);
@@ -532,14 +564,54 @@ class Board {
     return "black";
   }
 
+  _drawSquare(context, col, row) {
+    let offset = this.scope.config.offset && row % 2 ? this.size.tile / 2 : 0;
+    context.fillRect(col*this.size.tile + offset, row*this.size.tile, this.size.tile, this.size.tile);
+  }
+
+  // Shades the hex as if it's a 3d cube, due to an initial coding mistake.
+  _drawHexDepth(context, col, row) {
+    let half = this.size.tile / 2;
+    let offset = row % 2 ? this.size.tile / 2 : 0;
+    context.beginPath();
+    context.moveTo(col*this.size.tile+offset, row*this.size.tile+2);
+    context.lineTo(col*this.size.tile+offset+half, row*this.size.tile-2);
+    context.lineTo((col+1)*this.size.tile+offset, row*this.size.tile+2);
+    context.lineTo((col+1)*this.size.tile - (offset ? 0 : half), (row+1)*this.size.tile-2);
+    context.lineTo(col*this.size.tile+offset+half, (row+1)*this.size.tile+2);
+    context.lineTo(col*this.size.tile+offset, (row+1)*this.size.tile-2);
+    context.lineTo(col*this.size.tile+offset, row*this.size.tile+2);
+    context.fill();
+  }
+
+  _drawHexFlat(context, col, row) {
+    let tile_radius = this.size.tile / 2;
+    let center_x = col*this.size.tile + this.size.tile / (row % 2 ? 1 : 2);
+    let center_y = row*this.size.tile + tile_radius;
+    context.beginPath();
+    context.moveTo(center_x, center_y + tile_radius);
+    for (let i = 1; i <= 6; i++) {
+      context.lineTo(
+        center_x + tile_radius * Math.sin(i * 2 * Math.PI / 6),
+        center_y + tile_radius * Math.cos(i * 2 * Math.PI / 6)
+      );
+    }
+    context.fill();
+  }
+
   draw(context) {
     for (let row = 0; row < this.size.y; row++) {
       for (let col = 0; col < this.size.x; col++) {
         if (!this.grid[row][col]) { continue; }
         if (!this.grid[row][col].dirty) { continue; }
-        let offset = this.scope.config.offset && row % 2 ? this.size.tile / 2 : 0;
         context.fillStyle = this.getColor(this.grid[row][col]);
-        context.fillRect(col*this.size.tile + offset, row*this.size.tile, this.size.tile, this.size.tile);
+        if (this.scope.config.draw_style == "square") {
+          this._drawSquare(context, col, row);
+        } else if (this.scope.config.draw_style == "hex_depth") {
+          this._drawHexDepth(context, col, row);
+        } else {
+          this._drawHexFlat(context, col, row);
+        }
         this.grid[row][col].dirty = false;
       }
     }
