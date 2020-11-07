@@ -18,10 +18,9 @@
   </body>
   <script type="text/javascript">
   const url_params = new URLSearchParams(window.location.search);
-  const steps_per_draw = url_params.get('steps') || 1000;
+  const reset_time = url_params.get('refresh') || 60 * 1000 * 1;
   const automata = new World({
-    steps_per_draw: steps_per_draw,
-    reset_time: 60 * 1000 * 1, // 30 min
+    reset_time: reset_time,
   });
   </script>
 </html>
