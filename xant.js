@@ -54,6 +54,11 @@ class Config {
     hex: Still need to iron out logic/drawing
     */
     this.board_style = "square";
+    this.tile_size = this.board_style == "square" ? parseInt(Math.random() * 2) + 1 : 8;
+    if (this.tile_size > 1) {
+      this.offset = this.board_style == "hex" || Math.random() > 0.8;
+    }
+    this.steps_per_draw = 1000 / this.tile_size;
     this.direction_count = this.board_style == "square" ? 4 : 6;
 
     /*
@@ -382,27 +387,15 @@ class Board {
   }
 
   initialize() {
-    const tile_size = parseInt(Math.random() * 2) + 1;
     this.size = {
-      x: parseInt(document.body.clientWidth / tile_size),
-      y: parseInt(document.body.clientHeight / tile_size),
-      tile: tile_size,
+      x: parseInt(this.scope.width / this.scope.config.tile_size), // - 1 for hex to allow trailoff
+      y: parseInt(this.scope.height / this.scope.config.tile_size),
+      tile: this.scope.config.tile_size,
     };
+    this.size.x -= this.scope.config.offset ? 1 : 0
     this.grid = new Array(this.size.y);
     for (let row = 0; row < this.size.y; row++) {
       this.grid[row] = new Array(this.size.x);
-      // Initialize only when called to save time and memory
-      // for (let col = 0; col < this.size.x; col++) {
-      //   this.grid[row][col] = {
-      //     state: 0,
-      //     shift: 0,
-      //     dirty: true,
-      //     last_ant: null,
-      //     r: 0,
-      //     g: 0,
-      //     b: 0,
-      //   };
-      // }
     }
     this.generatePalette();
   }
@@ -486,8 +479,9 @@ class Board {
       for (let col = 0; col < this.size.x; col++) {
         if (!this.grid[row][col]) { continue; }
         if (!this.grid[row][col].dirty) { continue; }
+        let offset = row % 2 ? this.size.tile / 2 : 0;
         context.fillStyle = this.getColor(this.grid[row][col]);
-        context.fillRect(col*this.size.tile, row*this.size.tile, this.size.tile, this.size.tile);
+        context.fillRect(col*this.size.tile + offset, row*this.size.tile, this.size.tile, this.size.tile);
         this.grid[row][col].dirty = false;
       }
     }
