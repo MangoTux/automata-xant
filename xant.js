@@ -36,14 +36,17 @@ class Config {
     this.ant_count = parseInt(weighted_random({
       1: 15,
       2: 20,
-      3: 60,
+      3: 58,
       4: 5,
+      5: 2,
     }));
     this.instruction_count = parseInt(weighted_random({
       1: 1,
       5: 1,
       10: 2,
       100: 1,
+      500: 0.5,
+      1000: 0.1,
     }));
     this.instruction_count *= parseInt(Math.random() * 10 + 1);
     /*
@@ -101,8 +104,8 @@ class Config {
     */
     this.ant_coloring = weighted_random({
       "random": 15,
-      "rgb_blend": 10,
-      "hsl": 25,
+      "rgb_blend": this.instruction_count > 500 ? 1 : 10,
+      "hsl": this.instruction_count > 300 ? 5 : 25,
       "hsl_grade": 25,
       "hsl_shift": 25,
     });
@@ -149,6 +152,11 @@ class Config {
     for (let i = 0; i < this.instruction_count; i++) {
       instructions.push(weighted_random(instruction_weights));
     }
+    // Final cleanup to avoid two-instruction duplicates
+    if (instructions.length == 2 && instructions[0] == instructions[1]) {
+      delete instruction_weights[instructions[1]];
+      instructions[1] = weighted_random(instruction_weights);
+    }
     return instructions;
   }
 }
@@ -193,7 +201,6 @@ class World {
     this.createAnts();
     // Create ants
     this.resume();
-    console.log(this.ui.time_active);
   }
 
   createAnts() {
@@ -504,10 +511,10 @@ class ScreenCleaner {
     this.steps = 0;
     this.state.current = this.state.running;
     this.config.style = weighted_random({
-      "fade_out": 0*1,
-      "wipe_horizontal": 0*1,
-      "wipe_vertical": 0*1,
-      "shutter_horizontal": 0*1,
+      "fade_out": 1,
+      "wipe_horizontal": 1,
+      "wipe_vertical": 1,
+      "shutter_horizontal": 1,
       "shutter_vertical": 1,
     });
     if (this.config.style == "fade_out") {
@@ -520,11 +527,11 @@ class ScreenCleaner {
       this.config.steps_needed = (this.scope.width / this.config.radix)+1;
     } else if (this.config.style == "shutter_horizontal") {
       this.config.radix = 8;
-      this.config.shutter_count = 6;
+      this.config.shutter_count = 12;
       this.config.steps_needed = (this.scope.height / this.config.radix)+1;
     } else if (this.config.style == "shutter_vertical") {
-      this.config.radix = 4;
-      this.config.shutter_count = 12;
+      this.config.radix = 8;
+      this.config.shutter_count = 6;
       this.config.steps_needed = (this.scope.width / this.config.radix)+1;
     }
   }
@@ -572,8 +579,8 @@ class ScreenCleaner {
         if (i % 2) {
           y = this.scope.height - y;
           y -= this.config.radix;
-          width++;
         }
+        width++;
       } else {
         x = this.config.radix * (this.steps-1);
         y = i * this.scope.height / this.config.shutter_count;
@@ -582,8 +589,8 @@ class ScreenCleaner {
         if (i % 2) {
           x = this.scope.width - x;
           x -= this.config.radix;
-          height++;
         }
+        height++;
       }
       context.fillRect(x, y, width, height);
     }
