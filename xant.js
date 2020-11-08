@@ -138,6 +138,7 @@ class Config {
       "hsl_grade": 25,
       "hsl_shift": 25,
     });
+    this.color_cycle = 360;
 
     // Override for all default options
     for (const [option, value] of Object.entries(this.default_options)) {
@@ -152,6 +153,16 @@ class Config {
         range: 50, // final would be 20 + Math.random() * 50
         saturation: 100, // Grayscale works, too
       }
+    } else if (["hsl", "hsl_grade", "hsl_shift"].indexOf(this.ant_coloring) != -1) {
+      // Multiples of 1-5 are valid
+      this.color_cycle = parseInt(weighted_random({
+        360: 45,
+        300: 10,
+        240: 25,
+        180: 5,
+        120: 10,
+        60: 5,
+      }))
     }
   }
 
@@ -247,8 +258,7 @@ class World {
     // TODO Color base when hsl
     let offset = parseInt(Math.random() * 360);
     for (let i = 0; i < this.config.ant_count; i++) {
-      // TODO Position
-      let id = parseInt(offset + 360 * i / this.config.ant_count) % 360;
+      let id = parseInt(offset + this.config.color_cycle * i / this.config.ant_count) % 360;
       if (this.config.ant_coloring == "rgb_blend") {
         id = ["r", "g", "b"][i];
       }
@@ -257,14 +267,14 @@ class World {
         y: 0,
       };
       switch (this.config.ant_position_x) {
-        case "random": position.x = parseInt(Math.random() * this.board.size.x);
-        case "static": position.x = parseInt(this.board.size.x / 2);
-        case "spaced": position.x = parseInt(this.board.size.x * (i + 1) / (this.config.ant_count + 1));
+        case "random": position.x = parseInt(Math.random() * this.board.size.x); break;
+        case "static": position.x = parseInt(this.board.size.x / 2); break;
+        case "spaced": position.x = parseInt(this.board.size.x * (i + 1) / (this.config.ant_count + 1)); break;
       }
       switch (this.config.ant_position_y) {
-        case "random": position.y = parseInt(Math.random() * this.board.size.y);
-        case "static": position.y = parseInt(this.board.size.y / 2);
-        case "spaced": position.y = parseInt(this.board.size.y * (i + 1) / (this.config.ant_count + 1));
+        case "random": position.y = parseInt(Math.random() * this.board.size.y); break;
+        case "static": position.y = parseInt(this.board.size.y / 2); break;
+        case "spaced": position.y = parseInt(this.board.size.y * (i + 1) / (this.config.ant_count + 1)); break;
       }
       let ant = new Ant(this, id);
       ant.setPosition(position);
