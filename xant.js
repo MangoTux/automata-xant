@@ -22,10 +22,12 @@ class Config {
     this.instruction_sets = {
       "square": {
         "basic": ["left", "right"],
+        "facing": ["left", "right", "forward", "reverse"],
         "extended": ["left", "right", "north", "south", "east", "west", "forward", "reverse"],
       },
       "hex": {
         "basic": ["left", "right", "left2", "right2"],
+        "facing": ["left", "right", "left2", "right2", "forward", "reverse"],
         "extended": ["left", "right", "left2", "right2", "forward", "reverse", "northeast", "east", "southeast", "southwest", "west", "northwest"],
       },
     };
@@ -91,6 +93,7 @@ class Config {
     */
     this.instruction_type = weighted_random({
       "basic": 30,
+      "facing": 20,
       "extended": 70,
     });
 
@@ -130,6 +133,7 @@ class Config {
     hsl: Each ant has an ID 1-360 (Hue spectrum) that sets board tile.last_ant, scaling lightness
     hsl_grade: Each ant has an ID 1-360, hue modified by state
     hsl_shift: hsl, but on max_state+1 increases hue rather than resets lightness, circling spectrum
+    hsl_wave: hsl_grade, but sinusoid instead of cyclical
     */
     this.ant_coloring = weighted_random({
       "random": 15,
@@ -137,8 +141,8 @@ class Config {
       "hsl": this.instruction_count > 300 ? 5 : 25,
       "hsl_grade": 25,
       "hsl_shift": 25,
+      "hsl_wave": 25,
     });
-    this.color_cycle = 360;
 
     // Override for all default options
     for (const [option, value] of Object.entries(this.default_options)) {
@@ -153,7 +157,7 @@ class Config {
         range: 50, // final would be 20 + Math.random() * 50
         saturation: 100, // Grayscale works, too
       }
-    } else if (["hsl", "hsl_grade", "hsl_shift"].indexOf(this.ant_coloring) != -1) {
+    } else if (["hsl", "hsl_grade", "hsl_shift", "hsl_wave"].indexOf(this.ant_coloring) != -1) {
       // Multiples of 1-5 are valid
       this.color_cycle = parseInt(weighted_random({
         360: 45,
@@ -204,7 +208,7 @@ class Config {
     return [
       `ants: ${this.ant_count}`,
       `style: ${this.board_style}`,
-      `instructions: ${this.instruction_type}`,
+      `instructions: ${this.instruction_type} (${this.instruction_count})`,
       `coloring: ${this.ant_coloring}`,
       `draw: ${this.draw_style}`,
     ];
@@ -560,7 +564,7 @@ class Board {
       case "hsl":
         if (tile.last_ant == null) { return "black"; }
         const lightness = 50 * tile.state / this.scope.config.instruction_count;
-        return `hsl(${tile.last_ant}, 100%, ${tile.state}%)`;
+        return `hsl(${tile.last_ant}, 100%, ${lightness}%)`;
       case "hsl_grade":
         if (tile.last_ant == null) { return "black"; }
         return `hsl(${tile.last_ant + tile.state}, 100%, 50%)`;
@@ -570,6 +574,11 @@ class Board {
           return `hsl(${tile.last_ant + (tile.shift-1)*this.scope.config.instruction_count+tile.state}, 100%, 50%)`
         }
         return `hsl(${tile.last_ant}, 100%, ${tile.state}%)`;
+      case "hsl_wave":
+        // Scale state to value between
+        const radians = Math.PI * tile.state/this.scope.config.instruction_count;
+        const modifier = parseInt(Math.sin(radians) * this.scope.config.color_cycle / this.scope.config.ant_count);
+        return `hsl(${tile.last_ant + modifier}, 100%, 50%)`;
     }
     return "black";
   }
